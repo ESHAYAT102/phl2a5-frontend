@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "../../lib/api";
 import { setToken } from "../../lib/auth";
+import AuthCard from "../../components/AuthCard";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -36,14 +37,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="mx-auto max-w-md px-4 py-10">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Register</h1>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">Create your EcoSpark account.</p>
-
-      <form onSubmit={submit} className="mt-6 space-y-4 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-black">
-        {error ? (
-          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/20 dark:text-red-200">{error}</div>
-        ) : null}
+    <AuthCard title="Register" subtitle="Create your EcoSpark account.">
+      <form onSubmit={submit} className="space-y-4">
+        {error ? <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/20 dark:text-red-200">{error}</div> : null}
         <div className="space-y-1">
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Email</label>
           <input
@@ -79,7 +75,7 @@ export default function RegisterPage() {
           </a>
         </div>
       </form>
-    </div>
+    </AuthCard>
   );
 }
 
