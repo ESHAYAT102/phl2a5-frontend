@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { apiFetch } from "../../../lib/api";
 import { getToken } from "../../../lib/auth";
 import CommentsTree, { type CommentNode } from "../../../components/CommentsTree";
+import VotePanel from "../../../components/VotePanel";
 
 type IdeaDetailsResponse = {
   idea: {
@@ -237,34 +238,14 @@ export default function IdeaDetailsPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-black">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Voting</div>
-                <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                  {data.metrics.upvotes} upvotes • {data.metrics.downvotes} downvotes
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={!token}
-                  onClick={() => (userVote === 1 ? removeVote() : vote(1))}
-                  className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
-                >
-                  {userVote === 1 ? "Remove Upvote" : "Upvote"}
-                </button>
-                <button
-                  type="button"
-                  disabled={!token}
-                  onClick={() => (userVote === -1 ? removeVote() : vote(-1))}
-                  className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-                >
-                  {userVote === -1 ? "Remove Downvote" : "Downvote"}
-                </button>
-              </div>
-            </div>
-          </div>
+          <VotePanel
+            upvotes={data.metrics.upvotes}
+            downvotes={data.metrics.downvotes}
+            userVote={userVote}
+            isAuthed={!!token}
+            onUpvote={() => (userVote === 1 ? removeVote() : vote(1))}
+            onDownvote={() => (userVote === -1 ? removeVote() : vote(-1))}
+          />
 
           <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-black">
             <div className="flex items-start justify-between gap-4">
