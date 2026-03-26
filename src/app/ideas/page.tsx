@@ -33,6 +33,8 @@ export default function IdeasPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [ideas, setIdeas] = useState<IdeaListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [totalCandidates, setTotalCandidates] = useState(0);
 
   const [searchName, setSearchName] = useState(params.get("search") ?? "");
   const [categoryName, setCategoryName] = useState(params.get("category") ?? "");
@@ -82,6 +84,7 @@ export default function IdeasPage() {
       } catch {
         if (!mounted) return;
         setIdeas([]);
+        setFetchError("Failed to load ideas. Try adjusting filters.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -91,8 +94,6 @@ export default function IdeasPage() {
       mounted = false;
     };
   }, [query]);
-
-  const [totalCandidates, setTotalCandidates] = useState(0);
   const totalPages = Math.max(1, Math.ceil(totalCandidates / pageSize));
 
   const onSubmit = (e: React.FormEvent) => {
@@ -188,6 +189,8 @@ export default function IdeasPage() {
           Showing {ideas.length} ideas{totalCandidates ? ` (candidates: ${totalCandidates})` : ""}.
         </div>
       </div>
+
+      {fetchError ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/20 dark:text-red-200">{fetchError}</div> : null}
 
       {loading ? (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
