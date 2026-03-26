@@ -8,6 +8,7 @@ import CommentsTree, { type CommentNode } from "../../../components/CommentsTree
 import VotePanel from "../../../components/VotePanel";
 import PaidIdeaUnlockBanner from "../../../components/PaidIdeaUnlockBanner";
 import CommentComposer from "../../../components/CommentComposer";
+import PriceStatusBadge from "../../../components/PriceStatusBadge";
 
 type IdeaDetailsResponse = {
   idea: {
@@ -161,15 +162,7 @@ export default function IdeaDetailsPage() {
                   <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200">
                     {data.idea.category.name}
                   </span>
-                  {data.idea.isPaid ? (
-                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
-                      Paid
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200">
-                      Free
-                    </span>
-                  )}
+                  <PriceStatusBadge isPaid={data.idea.isPaid} />
                 </div>
                 <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{data.idea.title}</h1>
                 <div className="text-sm text-zinc-600 dark:text-zinc-400">

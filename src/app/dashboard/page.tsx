@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "../../lib/api";
 import { decodeJwt, getToken } from "../../lib/auth";
+import PriceStatusBadge from "../../components/PriceStatusBadge";
 import IdeaEditorForm from "../../components/IdeaEditorForm";
 
 type Category = { id: string; name: string };
@@ -300,15 +301,7 @@ export default function DashboardPage() {
                       <div className="mt-1 line-clamp-2 text-base font-semibold text-zinc-900 dark:text-zinc-50">{idea.title}</div>
                       <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Status: {idea.status}</div>
                     </div>
-                    {idea.isPaid ? (
-                      <div className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
-                        Paid
-                      </div>
-                    ) : (
-                      <div className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200">
-                        Free
-                      </div>
-                    )}
+                    <PriceStatusBadge isPaid={idea.isPaid} />
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -414,15 +407,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Status: {idea.status}</div>
                       </div>
-                      {idea.isPaid ? (
-                        <div className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
-                          Paid
-                        </div>
-                      ) : (
-                        <div className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200">
-                          Free
-                        </div>
-                      )}
+                      <PriceStatusBadge isPaid={idea.isPaid} />
                     </div>
 
                     {idea.status === "REJECTED" && idea.adminFeedback ? (
