@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { apiFetch } from "../../../lib/api";
 import { getToken } from "../../../lib/auth";
+import CommentsTree, { type CommentNode } from "../../../components/CommentsTree";
 
 type IdeaDetailsResponse = {
   idea: {
@@ -26,15 +27,6 @@ type IdeaDetailsResponse = {
   metrics: { upvotes: number; downvotes: number; commentCount: number };
   userVote: 1 | -1 | null;
   comments: CommentNode[];
-};
-
-type CommentNode = {
-  id: string;
-  userId: string;
-  content: string;
-  parentId: string | null;
-  createdAt: string;
-  replies: CommentNode[];
 };
 
 export default function IdeaDetailsPage() {
@@ -140,32 +132,6 @@ export default function IdeaDetailsPage() {
     }
   };
 
-  const renderComments = (nodes: CommentNode[]) => {
-    return (
-      <div className="space-y-4">
-        {nodes.map((c) => (
-          <div key={c.id} className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-black">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-xs font-medium text-zinc-500">User: {c.userId}</div>
-                <div className="mt-1 whitespace-pre-wrap text-sm text-zinc-800 dark:text-zinc-200">{c.content}</div>
-              </div>
-              <div className="shrink-0">
-                <button
-                  type="button"
-                  className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-300"
-                  onClick={() => setReplyTo(c.id)}
-                >
-                  Reply
-                </button>
-              </div>
-            </div>
-            {c.replies?.length ? <div className="mt-3 border-l border-zinc-200 pl-3 dark:border-zinc-800">{renderComments(c.replies)}</div> : null}
-          </div>
-        ))}
-      </div>
-    );
-  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -343,7 +309,9 @@ export default function IdeaDetailsPage() {
               </div>
             </form>
 
-            <div className="mt-6">{renderComments(data.comments)}</div>
+            <div className="mt-6">
+              <CommentsTree nodes={data.comments} onReply={(id) => setReplyTo(id)} />
+            </div>
           </div>
         </div>
       ) : null}
