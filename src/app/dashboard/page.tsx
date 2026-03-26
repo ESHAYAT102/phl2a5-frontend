@@ -15,6 +15,7 @@ type MyIdea = {
   createdAt: string;
   submittedAt: string | null;
   category: { name: string };
+  adminFeedback?: string | null;
 };
 
 type AdminIdea = MyIdea & { authorEmail?: string; adminFeedback?: string };
@@ -317,6 +318,11 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
+                    {idea.status === "REJECTED" && idea.adminFeedback ? (
+                      <div className="w-full rounded-lg bg-zinc-50 p-3 text-sm text-zinc-700 dark:bg-zinc-900/30 dark:text-zinc-200">
+                        Rejection feedback: {idea.adminFeedback}
+                      </div>
+                    ) : null}
                     {idea.status === "DRAFT" ? (
                       <>
                         <button
