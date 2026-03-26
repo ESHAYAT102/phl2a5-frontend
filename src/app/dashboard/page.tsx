@@ -19,6 +19,7 @@ type MyIdea = {
 };
 
 type AdminIdea = MyIdea & { authorEmail?: string; adminFeedback?: string };
+type AdminUser = { id: string; email: string; role: "MEMBER" | "ADMIN"; isActive: boolean; createdAt: string };
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -34,6 +35,8 @@ export default function DashboardPage() {
 
   const [adminIdeas, setAdminIdeas] = useState<AdminIdea[]>([]);
   const [adminStatusFilter, setAdminStatusFilter] = useState<"UNDER_REVIEW" | "APPROVED" | "REJECTED" | "DRAFT">("UNDER_REVIEW");
+  const [adminTab, setAdminTab] = useState<"moderation" | "users">("moderation");
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
 
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
@@ -67,6 +70,11 @@ export default function DashboardPage() {
     setAdminIdeas(res.ideas);
   }
 
+  async function loadUsers() {
+    const res = await apiFetch<{ users: AdminUser[] }>(`/api/admin/users`, { auth: true });
+    setAdminUsers(res.users);
+  }
+
   useEffect(() => {
     if (!token) {
       router.push("/login");
@@ -90,12 +98,15 @@ export default function DashboardPage() {
   useEffect(() => {
     if (role === "ADMIN") {
       setLoading(true);
-      loadAdmin()
+      (async () => {
+        if (adminTab === "moderation") await loadAdmin();
+        if (adminTab === "users") await loadUsers();
+      })()
         .catch((e: any) => setError(e?.message ?? "Failed to load ideas"))
         .finally(() => setLoading(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminStatusFilter]);
+  }, [adminStatusFilter, adminTab]);
 
   const submitIdea = async () => {
     if (!token) return;
@@ -192,6 +203,11 @@ export default function DashboardPage() {
       body: { status: next, feedback: next === "REJECTED" ? feedback : undefined },
     });
     await loadAdmin();
+  };
+
+  const updateUser = async (id: string, patch: { isActive?: boolean; role?: "MEMBER" | "ADMIN" }) => {
+    await apiFetch(`/api/admin/users/${id}`, { method: "PATCH", auth: true, body: patch });
+    await loadUsers();
   };
 
   return (
@@ -362,71 +378,149 @@ export default function DashboardPage() {
               <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Moderation Queue</div>
               <div className="text-sm text-zinc-600 dark:text-zinc-300">Approve or reject ideas and include feedback on rejection.</div>
             </div>
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Status</label>
-              <select
-                value={adminStatusFilter}
-                onChange={(e) => setAdminStatusFilter(e.target.value as any)}
-                className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100"
-              >
-                <option value="UNDER_REVIEW">Under Review</option>
-                <option value="APPROVED">Approved</option>
-                <option value="REJECTED">Rejected</option>
-                <option value="DRAFT">Draft</option>
-              </select>
+            <div className="flex flex-col gap-3 sm:items-end">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAdminTab("moderation")}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                    adminTab === "moderation" ? "bg-emerald-600 text-white" : "border border-zinc-200 bg-white text-zinc-800 dark:border-zinc-800 dark:bg-black dark:text-zinc-100"
+                  }`}
+                >
+                  Moderation
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAdminTab("users")}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                    adminTab === "users" ? "bg-zinc-900 text-white" : "border border-zinc-200 bg-white text-zinc-800 dark:border-zinc-800 dark:bg-black dark:text-zinc-100"
+                  }`}
+                >
+                  Members
+                </button>
+              </div>
+
+              {adminTab === "moderation" ? (
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Status</label>
+                  <select
+                    value={adminStatusFilter}
+                    onChange={(e) => setAdminStatusFilter(e.target.value as any)}
+                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100"
+                  >
+                    <option value="UNDER_REVIEW">Under Review</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="REJECTED">Rejected</option>
+                    <option value="DRAFT">Draft</option>
+                  </select>
+                </div>
+              ) : null}
             </div>
           </div>
 
-          {adminIdeas.length === 0 ? <div className="text-sm text-zinc-600 dark:text-zinc-300">No ideas in this status.</div> : null}
+          {adminTab === "moderation" ? (
+            <>
+              {adminIdeas.length === 0 ? <div className="text-sm text-zinc-600 dark:text-zinc-300">No ideas in this status.</div> : null}
 
-          <div className="space-y-4">
-            {adminIdeas.map((idea) => (
-              <div key={idea.id} className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{idea.category.name}</div>
-                    <div className="mt-1 line-clamp-2 text-base font-semibold text-zinc-900 dark:text-zinc-50">{idea.title}</div>
-                    <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                      Author: {(idea as any).author?.email ?? (idea as any).authorEmail ?? "Unknown"}
+              <div className="space-y-4">
+                {adminIdeas.map((idea) => (
+                  <div key={idea.id} className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{(idea as any).category?.name ?? idea.category.name}</div>
+                        <div className="mt-1 line-clamp-2 text-base font-semibold text-zinc-900 dark:text-zinc-50">{idea.title}</div>
+                        <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                          Author: {(idea as any).author?.email ?? (idea as any).authorEmail ?? "Unknown"}
+                        </div>
+                        <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Status: {idea.status}</div>
+                      </div>
+                      {idea.isPaid ? (
+                        <div className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
+                          Paid
+                        </div>
+                      ) : (
+                        <div className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200">
+                          Free
+                        </div>
+                      )}
                     </div>
-                    <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Status: {idea.status}</div>
+
+                    {idea.status === "REJECTED" && idea.adminFeedback ? (
+                      <div className="mt-3 rounded-lg bg-zinc-50 p-3 text-sm text-zinc-700 dark:bg-zinc-900/30 dark:text-zinc-200">
+                        Feedback: {idea.adminFeedback}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => moderateIdea(idea.id, "APPROVED")}
+                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moderateIdea(idea.id, "REJECTED")}
+                        className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-black"
+                      >
+                        Reject
+                      </button>
+                    </div>
                   </div>
-                  {idea.isPaid ? (
-                    <div className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
-                      Paid
-                    </div>
-                  ) : (
-                    <div className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200">
-                      Free
-                    </div>
-                  )}
-                </div>
-
-                {idea.status === "REJECTED" && idea.adminFeedback ? (
-                  <div className="mt-3 rounded-lg bg-zinc-50 p-3 text-sm text-zinc-700 dark:bg-zinc-900/30 dark:text-zinc-200">
-                    Feedback: {idea.adminFeedback}
-                  </div>
-                ) : null}
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => moderateIdea(idea.id, "APPROVED")}
-                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moderateIdea(idea.id, "REJECTED")}
-                    className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-black"
-                  >
-                    Reject
-                  </button>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <div className="space-y-4">
+              {adminUsers.length === 0 ? <div className="text-sm text-zinc-600 dark:text-zinc-300">No users yet.</div> : null}
+              <div className="overflow-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-zinc-50 text-xs uppercase text-zinc-600 dark:bg-zinc-900/40 dark:text-zinc-400">
+                    <tr>
+                      <th className="px-4 py-3">Email</th>
+                      <th className="px-4 py-3">Role</th>
+                      <th className="px-4 py-3">Active</th>
+                      <th className="px-4 py-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminUsers.map((u) => (
+                      <tr key={u.id} className="border-t border-zinc-200 dark:border-zinc-800">
+                        <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-100">{u.email}</td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={u.role}
+                            onChange={(e) => updateUser(u.id, { role: e.target.value as any })}
+                            className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-sm outline-none dark:border-zinc-800 dark:bg-black dark:text-zinc-100"
+                          >
+                            <option value="MEMBER">MEMBER</option>
+                            <option value="ADMIN">ADMIN</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={u.isActive}
+                            onChange={(e) => updateUser(u.id, { isActive: e.target.checked })}
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
+                          <button
+                            type="button"
+                            onClick={() => updateUser(u.id, { isActive: !u.isActive })}
+                            className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-300"
+                          >
+                            Toggle
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
