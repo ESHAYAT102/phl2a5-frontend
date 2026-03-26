@@ -29,6 +29,8 @@ export default function VotePanel({
             type="button"
             disabled={!isAuthed}
             onClick={onUpvote}
+            aria-pressed={userVote === 1}
+            aria-label={userVote === 1 ? "Remove upvote" : "Upvote"}
             className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
           >
             {userVote === 1 ? "Remove Upvote" : "Upvote"}
@@ -37,6 +39,8 @@ export default function VotePanel({
             type="button"
             disabled={!isAuthed}
             onClick={onDownvote}
+            aria-pressed={userVote === -1}
+            aria-label={userVote === -1 ? "Remove downvote" : "Downvote"}
             className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
           >
             {userVote === -1 ? "Remove Downvote" : "Downvote"}

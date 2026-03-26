@@ -24,6 +24,7 @@ export default function CommentsTree({ nodes, onReply }: { nodes: CommentNode[];
                 type="button"
                 className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-300"
                 onClick={() => onReply(c.id)}
+                  aria-label={`Reply to comment ${c.id}`}
               >
                 Reply
               </button>
