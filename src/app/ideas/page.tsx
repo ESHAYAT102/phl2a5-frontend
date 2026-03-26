@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { apiFetch } from "../../lib/api";
 import IdeaCard from "../../components/IdeaCard";
 import IdeasFilters from "../../components/IdeasFilters";
+import PaginationControls from "../../components/PaginationControls";
 
 type Category = { id: string; name: string };
 type IdeaListItem = IdeaCardModel & {
@@ -156,28 +157,12 @@ export default function IdeasPage() {
         </div>
       )}
 
-      <div className="mt-8 flex items-center justify-center gap-3">
-        <button
-          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-800 dark:bg-black dark:hover:bg-zinc-900 disabled:opacity-50"
-          disabled={page <= 1}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          type="button"
-        >
-          Previous
-        </button>
-        <div className="text-sm text-zinc-700 dark:text-zinc-300">
-          Page <span className="font-semibold text-zinc-900 dark:text-zinc-100">{page}</span> of{" "}
-          <span className="font-semibold text-zinc-900 dark:text-zinc-100">{totalPages}</span>
-        </div>
-        <button
-          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-800 dark:bg-black dark:hover:bg-zinc-900 disabled:opacity-50"
-          disabled={page >= totalPages}
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          type="button"
-        >
-          Next
-        </button>
-      </div>
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        onPrev={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+      />
     </div>
   );
 }
