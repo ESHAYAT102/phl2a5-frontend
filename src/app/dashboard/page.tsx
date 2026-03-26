@@ -44,6 +44,7 @@ export default function DashboardPage() {
   const [priceCents, setPriceCents] = useState<number>(500);
   const [formMode, setFormMode] = useState<"DRAFT" | "SUBMIT">("SUBMIT");
   const [formLoading, setFormLoading] = useState(false);
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
 
   const lockedCreateDisabled = !title.trim() || !categoryId || !problemStatement.trim() || !proposedSolution.trim() || !description.trim() || (isPaid && priceCents <= 0);
 
@@ -105,21 +106,38 @@ export default function DashboardPage() {
         .map((s) => s.trim())
         .filter(Boolean);
 
-      const res = await apiFetch<{ idea: any }>("/api/ideas", {
-        method: "POST",
-        auth: true,
-        body: {
-          title,
-          categoryId,
-          problemStatement,
-          proposedSolution,
-          description,
-          imageUrls,
-          isPaid,
-          priceCents: isPaid ? priceCents : undefined,
-          mode: formMode,
-        },
-      });
+      if (editingDraftId) {
+        await apiFetch(`/api/ideas/${editingDraftId}`, {
+          method: "PATCH",
+          auth: true,
+          body: {
+            title,
+            categoryId,
+            problemStatement,
+            proposedSolution,
+            description,
+            imageUrls,
+            isPaid,
+            priceCents: isPaid ? priceCents : undefined,
+          },
+        });
+      } else {
+        await apiFetch<{ idea: any }>("/api/ideas", {
+          method: "POST",
+          auth: true,
+          body: {
+            title,
+            categoryId,
+            problemStatement,
+            proposedSolution,
+            description,
+            imageUrls,
+            isPaid,
+            priceCents: isPaid ? priceCents : undefined,
+            mode: formMode,
+          },
+        });
+      }
 
       // Reset some fields.
       setTitle("");
@@ -130,6 +148,7 @@ export default function DashboardPage() {
       setIsPaid(false);
       setPriceCents(500);
       setFormMode("SUBMIT");
+      setEditingDraftId(null);
 
       await loadMember();
     } catch (e: any) {
@@ -147,6 +166,21 @@ export default function DashboardPage() {
   const deleteDraft = async (id: string) => {
     await apiFetch(`/api/ideas/${id}`, { method: "DELETE", auth: true });
     await loadMember();
+  };
+
+  const editDraft = async (id: string) => {
+    const res = await apiFetch<{ idea: any }>(`/api/me/ideas/${id}`, { auth: true });
+    const idea = res.idea;
+    setEditingDraftId(id);
+    setFormMode("DRAFT");
+    setTitle(idea.title ?? "");
+    setCategoryId(idea.categoryId);
+    setProblemStatement(idea.problemStatement ?? "");
+    setProposedSolution(idea.proposedSolution ?? "");
+    setDescription(idea.description ?? "");
+    setImageUrlsCsv((idea.imageUrls ?? []).join(", "));
+    setIsPaid(!!idea.isPaid);
+    setPriceCents(idea.priceCents ?? 500);
   };
 
   const moderateIdea = async (id: string, next: "APPROVED" | "REJECTED") => {
@@ -249,7 +283,7 @@ export default function DashboardPage() {
                 type="button"
                 className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
               >
-                {formLoading ? "Saving..." : formMode === "DRAFT" ? "Save Draft" : "Submit Idea"}
+                {formLoading ? "Saving..." : editingDraftId ? "Save Draft Changes" : formMode === "DRAFT" ? "Save Draft" : "Submit Idea"}
               </button>
             </div>
           </div>
@@ -285,6 +319,13 @@ export default function DashboardPage() {
                   <div className="mt-4 flex flex-wrap gap-2">
                     {idea.status === "DRAFT" ? (
                       <>
+                        <button
+                          type="button"
+                          onClick={() => editDraft(idea.id)}
+                          className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-black dark:text-zinc-100 dark:hover:bg-zinc-900"
+                        >
+                          Edit Draft
+                        </button>
                         <button
                           type="button"
                           onClick={() => submitForReview(idea.id)}
