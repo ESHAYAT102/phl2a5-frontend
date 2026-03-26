@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "../../lib/api";
 import { decodeJwt, getToken } from "../../lib/auth";
+import IdeaEditorForm from "../../components/IdeaEditorForm";
 
 type Category = { id: string; name: string };
 type MyIdea = {
@@ -256,81 +257,31 @@ export default function DashboardPage() {
 
       {role !== "ADMIN" ? (
         <div className="mt-6 grid gap-6 lg:grid-cols-5">
-          <div className="lg:col-span-2 space-y-4 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-black">
-            <div>
-              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Create Idea</div>
-              <div className="text-sm text-zinc-600 dark:text-zinc-300">Drafts stay private until submitted.</div>
-            </div>
-
-            <div className="grid gap-3">
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Title</label>
-                <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Category</label>
-                <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100">
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Problem Statement</label>
-                <textarea value={problemStatement} onChange={(e) => setProblemStatement(e.target.value)} className="h-24 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Proposed Solution</label>
-                <textarea value={proposedSolution} onChange={(e) => setProposedSolution(e.target.value)} className="h-24 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Description</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="h-24 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100" />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Image URLs (comma separated)</label>
-                <input value={imageUrlsCsv} onChange={(e) => setImageUrlsCsv(e.target.value)} className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100" placeholder="https://... , https://..." />
-              </div>
-
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/30">
-                <div className="space-y-0.5">
-                  <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Paid Idea</div>
-                  <div className="text-xs text-zinc-600 dark:text-zinc-300">Users must pay to unlock voting/comments.</div>
-                </div>
-                <input type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} />
-              </div>
-
-              {isPaid ? (
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Price (cents)</label>
-                  <input type="number" min={1} value={priceCents} onChange={(e) => setPriceCents(Number(e.target.value))} className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100" />
-                </div>
-              ) : null}
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Mode</label>
-                <select
-                  value={formMode}
-                  onChange={(e) => setFormMode(e.target.value as "DRAFT" | "SUBMIT")}
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100"
-                >
-                  <option value="DRAFT">Draft</option>
-                  <option value="SUBMIT">Submit for review</option>
-                </select>
-              </div>
-
-              <button
-                disabled={formLoading || lockedCreateDisabled}
-                onClick={submitIdea}
-                type="button"
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
-              >
-                {formLoading ? "Saving..." : editingDraftId ? "Save Draft Changes" : formMode === "DRAFT" ? "Save Draft" : "Submit Idea"}
-              </button>
-            </div>
-          </div>
+          <IdeaEditorForm
+            categories={categories}
+            title={title}
+            setTitle={setTitle}
+            categoryId={categoryId}
+            setCategoryId={setCategoryId}
+            problemStatement={problemStatement}
+            setProblemStatement={setProblemStatement}
+            proposedSolution={proposedSolution}
+            setProposedSolution={setProposedSolution}
+            description={description}
+            setDescription={setDescription}
+            imageUrlsCsv={imageUrlsCsv}
+            setImageUrlsCsv={setImageUrlsCsv}
+            isPaid={isPaid}
+            setIsPaid={setIsPaid}
+            priceCents={priceCents}
+            setPriceCents={setPriceCents}
+            formMode={formMode}
+            setFormMode={setFormMode}
+            editingDraftId={editingDraftId}
+            formLoading={formLoading}
+            disabled={lockedCreateDisabled}
+            onSubmit={submitIdea}
+          />
 
           <div className="lg:col-span-3 space-y-3 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-black">
             <div>
