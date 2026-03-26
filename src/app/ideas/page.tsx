@@ -1,25 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiFetch } from "../../lib/api";
-import IdeaCard from "../../components/IdeaCard";
+import IdeaCard, { type IdeaCardModel } from "../../components/IdeaCard";
 import IdeasFilters from "../../components/IdeasFilters";
 import PaginationControls from "../../components/PaginationControls";
 
 type Category = { id: string; name: string };
-type IdeaListItem = IdeaCardModel & {
-  id: string;
-  commentCount: number;
-  hasAccess?: boolean;
-};
+type IdeaListItem = IdeaCardModel & { commentCount: number };
 
 function clampPage(n: number) {
   if (!Number.isFinite(n) || n < 1) return 1;
   return Math.floor(n);
 }
 
-export default function IdeasPage() {
+function IdeasPageContent() {
   const params = useSearchParams();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -30,6 +26,7 @@ export default function IdeasPage() {
 
   const [searchName, setSearchName] = useState(params.get("search") ?? "");
   const [categoryName, setCategoryName] = useState(params.get("category") ?? "");
+  const [authorEmail, setAuthorEmail] = useState(params.get("authorEmail") ?? "");
   const initialPayment = params.get("payment");
   const [paymentStatus, setPaymentStatus] = useState<"free" | "paid" | "all">(
     initialPayment === "free" || initialPayment === "paid" || initialPayment === "all" ? initialPayment : "all"
@@ -60,13 +57,14 @@ export default function IdeasPage() {
     return {
       search: searchName || undefined,
       category: categoryName || undefined,
+      authorEmail: authorEmail || undefined,
       paymentStatus,
       minUpvotes: minUpvotes > 0 ? minUpvotes : undefined,
       sort,
       page,
       pageSize,
     };
-  }, [categoryName, minUpvotes, page, pageSize, paymentStatus, searchName, sort]);
+  }, [authorEmail, categoryName, minUpvotes, page, pageSize, paymentStatus, searchName, sort]);
 
   useEffect(() => {
     let mounted = true;
@@ -114,6 +112,8 @@ export default function IdeasPage() {
         setSearchName={setSearchName}
         categoryName={categoryName}
         setCategoryName={setCategoryName}
+        authorEmail={authorEmail}
+        setAuthorEmail={setAuthorEmail}
         paymentStatus={paymentStatus}
         setPaymentStatus={setPaymentStatus}
         minUpvotes={minUpvotes}
@@ -164,6 +164,24 @@ export default function IdeasPage() {
         onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
       />
     </div>
+  );
+}
+
+export default function IdeasPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-6xl px-4 py-8">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-56 animate-pulse rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black" />
+            ))}
+          </div>
+        </div>
+      }
+    >
+      <IdeasPageContent />
+    </Suspense>
   );
 }
 

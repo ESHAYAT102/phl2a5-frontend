@@ -48,7 +48,9 @@ export async function apiFetch<T>(
     method,
     headers,
     body: options?.body ? JSON.stringify(options.body) : undefined,
-    credentials: "include",
+    // We use `Authorization: Bearer <token>` (localStorage) rather than cookies,
+    // so avoid credentialed requests to prevent CORS failures.
+    credentials: "omit",
   });
 
   const text = await res.text();

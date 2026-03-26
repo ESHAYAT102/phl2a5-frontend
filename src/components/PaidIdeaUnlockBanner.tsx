@@ -19,7 +19,7 @@ export default function PaidIdeaUnlockBanner(props: {
             onClick={props.onCheckout}
             className="rounded-lg bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60"
           >
-            {props.checkoutLoading ? "Processing..." : "Pay to Unlock (Mock)"}
+            {props.checkoutLoading ? "Opening Stripe..." : "Pay to Unlock"}
           </button>
         ) : (
           <a href="/login" className="text-sm font-medium text-amber-900 underline dark:text-amber-200">

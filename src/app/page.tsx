@@ -26,7 +26,7 @@ export default function Home() {
       try {
         const [cats, ideas] = await Promise.all([
           apiFetch<{ categories: Category[] }>("/api/categories"),
-          apiFetch<{ ideas: IdeaCard[] }>("/api/ideas", {
+          apiFetch<{ ideas: TopIdeaResponse[] }>("/api/ideas", {
             query: { sort: "top", pageSize: 3, paymentStatus: "all" },
           }),
         ]);
@@ -117,13 +117,13 @@ export default function Home() {
         </div>
 
         {loading ? (
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="h-44 animate-pulse rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             {topIdeas.map((idea) => (
               <IdeaCard
                 key={idea.id}

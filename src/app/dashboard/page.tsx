@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "../../lib/api";
+import { apiFetch, ApiError } from "../../lib/api";
 import { decodeJwt, getToken } from "../../lib/auth";
 import PriceStatusBadge from "../../components/PriceStatusBadge";
 import IdeaEditorForm from "../../components/IdeaEditorForm";
@@ -44,7 +44,15 @@ type DraftIdeaForEdit = {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const token = useMemo(() => getToken(), []);
+  // Avoid hydration mismatch: token comes from localStorage, which is unavailable on the server.
+  const [token, setToken] = useState<string | null>(null);
+  const [authLoaded, setAuthLoaded] = useState(false);
+
+  useEffect(() => {
+    setToken(getToken());
+    setAuthLoaded(true);
+  }, []);
+
   const payload = useMemo(() => (token ? decodeJwt(token) : null), [token]);
   const role = payload?.role ?? null;
 
@@ -71,9 +79,56 @@ export default function DashboardPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
 
-  const lockedCreateDisabled = !title.trim() || !categoryId || !problemStatement.trim() || !proposedSolution.trim() || !description.trim() || (isPaid && priceCents <= 0);
+  const TITLE_MIN = 3;
+  const TITLE_MAX = 120;
+  const STMT_MIN = 10;
+  const STMT_MAX = 2000;
+  const DESCRIPTION_MIN = 10;
+  const DESCRIPTION_MAX = 6000;
 
-  async function loadMember() {
+  function formatValidationDetails(details: unknown): string | null {
+    if (!details || typeof details !== "object") return null;
+    const d = details as { fieldErrors?: Record<string, string[]>; formErrors?: string[] };
+    const fieldErrors = d.fieldErrors;
+    if (fieldErrors) {
+      const parts: string[] = [];
+      for (const [field, errs] of Object.entries(fieldErrors)) {
+        if (Array.isArray(errs) && errs.length > 0) parts.push(`${field}: ${errs[0]}`);
+      }
+      if (parts.length) return parts.join(" ");
+    }
+    const formErrors = d.formErrors;
+    if (Array.isArray(formErrors) && formErrors.length > 0) return formErrors[0];
+    return null;
+  }
+
+  const imageUrlsParsed = imageUrlsCsv
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const hasInvalidImageUrl = imageUrlsParsed.some((u) => {
+    try {
+      new URL(u);
+      return false;
+    } catch {
+      return true;
+    }
+  });
+
+  const lockedCreateDisabled =
+    title.trim().length < TITLE_MIN ||
+    title.trim().length > TITLE_MAX ||
+    !categoryId ||
+    problemStatement.trim().length < STMT_MIN ||
+    problemStatement.trim().length > STMT_MAX ||
+    proposedSolution.trim().length < STMT_MIN ||
+    proposedSolution.trim().length > STMT_MAX ||
+    description.trim().length < DESCRIPTION_MIN ||
+    description.trim().length > DESCRIPTION_MAX ||
+    hasInvalidImageUrl ||
+    (isPaid && (!Number.isFinite(priceCents) || priceCents <= 0));
+
+  const loadMember = useCallback(async () => {
     const [cats, res] = await Promise.all([
       apiFetch<{ categories: Category[] }>("/api/categories", { auth: false }),
       apiFetch<{ ideas: MyIdea[] }>("/api/me/ideas", { auth: true }),
@@ -81,22 +136,23 @@ export default function DashboardPage() {
     setCategories(cats.categories);
     setMyIdeas(res.ideas);
     if (!categoryId && cats.categories[0]) setCategoryId(cats.categories[0].id);
-  }
+  }, [categoryId]);
 
-  async function loadAdmin() {
+  const loadAdmin = useCallback(async () => {
     const res = await apiFetch<{ ideas: AdminIdea[] }>(`/api/admin/ideas`, {
       auth: true,
       query: { status: adminStatusFilter },
     });
     setAdminIdeas(res.ideas);
-  }
+  }, [adminStatusFilter]);
 
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     const res = await apiFetch<{ users: AdminUser[] }>(`/api/admin/users`, { auth: true });
     setAdminUsers(res.users);
-  }
+  }, []);
 
   useEffect(() => {
+    if (!authLoaded) return;
     if (!token) {
       router.push("/login");
       return;
@@ -114,8 +170,7 @@ export default function DashboardPage() {
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role]);
+  }, [authLoaded, loadAdmin, loadMember, role, router, token]);
 
   useEffect(() => {
     if (role === "ADMIN") {
@@ -130,8 +185,7 @@ export default function DashboardPage() {
         })
         .finally(() => setLoading(false));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminStatusFilter, adminTab]);
+  }, [adminStatusFilter, adminTab, loadAdmin, loadUsers, role]);
 
   const submitIdea = async () => {
     if (!token) return;
@@ -189,8 +243,17 @@ export default function DashboardPage() {
 
       await loadMember();
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Failed to submit idea.";
-      setError(message);
+      if (e instanceof ApiError) {
+        if (e.status === 400 && e.details) {
+          const detailMsg = formatValidationDetails(e.details);
+          setError(detailMsg ? `Validation error: ${detailMsg}` : e.message);
+          return;
+        }
+        setError(e.message);
+        return;
+      }
+
+      setError(e instanceof Error ? e.message : "Failed to submit idea.");
     } finally {
       setFormLoading(false);
     }

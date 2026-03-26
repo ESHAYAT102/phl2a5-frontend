@@ -65,6 +65,7 @@ export default function IdeaEditorForm(props: {
 
   const onLocalSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (disabled || formLoading) return; // Prevent submit via Enter key.
     onSubmit();
   };
 

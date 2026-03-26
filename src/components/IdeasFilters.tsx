@@ -8,6 +8,8 @@ export default function IdeasFilters(props: {
   setSearchName: (v: string) => void;
   categoryName: string;
   setCategoryName: (v: string) => void;
+  authorEmail: string;
+  setAuthorEmail: (v: string) => void;
   paymentStatus: "free" | "paid" | "all";
   setPaymentStatus: (v: "free" | "paid" | "all") => void;
   minUpvotes: number;
@@ -48,6 +50,16 @@ export default function IdeasFilters(props: {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Author Email</label>
+        <input
+          value={props.authorEmail}
+          onChange={(e) => props.setAuthorEmail(e.target.value)}
+          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100"
+          placeholder="e.g., alex@example.com"
+        />
       </div>
 
       <div className="space-y-2">

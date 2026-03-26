@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { apiFetch } from "../../../lib/api";
 import { getToken } from "../../../lib/auth";
 import CommentsTree, { type CommentNode } from "../../../components/CommentsTree";
@@ -36,6 +36,8 @@ type IdeaDetailsResponse = {
 export default function IdeaDetailsPage() {
   const params = useParams<{ id: string }>();
   const ideaId = params.id;
+  const searchParams = useSearchParams();
+  const payment = searchParams.get("payment");
 
   const [loading, setLoading] = useState(true);
   const [locked, setLocked] = useState(false);
@@ -43,6 +45,7 @@ export default function IdeaDetailsPage() {
 
   const [data, setData] = useState<IdeaDetailsResponse | null>(null);
   const [userVote, setUserVote] = useState<1 | -1 | null>(null);
+  const [votePending, setVotePending] = useState(false);
 
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [content, setContent] = useState("");
@@ -83,20 +86,127 @@ export default function IdeaDetailsPage() {
 
   const refresh = () => load();
 
-  const vote = async (direction: 1 | -1) => {
-    if (!token) return;
-    await apiFetch(`/api/ideas/${ideaId}/vote`, {
+  useEffect(() => {
+    if (payment !== "success") return;
+    // After returning from Stripe Checkout, the webhook may still be processing.
+    // Poll briefly so the unlocked UI appears without manual refresh.
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts += 1;
+      void refresh();
+      if (attempts >= 6) clearInterval(interval);
+    }, 2500);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payment, ideaId]);
+
+  function getOptimisticNextState(nextDirection: 1 | -1) {
+    const prevVote = userVote;
+    const prevMetrics = data?.metrics;
+    if (!prevMetrics) return null;
+
+    // Reddit-like behavior:
+    // - same direction again => remove vote
+    // - opposite direction => switch vote
+    // - no previous vote => set vote
+    const nextVote: 1 | -1 | null = prevVote === nextDirection ? null : nextDirection;
+
+    let nextUpvotes = prevMetrics.upvotes;
+    let nextDownvotes = prevMetrics.downvotes;
+
+    if (prevVote === 1) nextUpvotes -= 1;
+    if (prevVote === -1) nextDownvotes -= 1;
+
+    if (nextVote === 1) nextUpvotes += 1;
+    if (nextVote === -1) nextDownvotes += 1;
+
+    nextUpvotes = Math.max(0, nextUpvotes);
+    nextDownvotes = Math.max(0, nextDownvotes);
+
+    return {
+      prevVote,
+      prevMetrics,
+      nextVote,
+      nextMetrics: { upvotes: nextUpvotes, downvotes: nextDownvotes },
+    };
+  }
+
+  const vote = (direction: 1 | -1) => {
+    if (!token || votePending) return;
+    const optimistic = getOptimisticNextState(direction);
+    if (!optimistic) return;
+
+    // Immediate UI update.
+    setUserVote(optimistic.nextVote);
+    setData((prev) => {
+      if (!prev) return prev;
+      return { ...prev, metrics: { ...prev.metrics, ...optimistic.nextMetrics } };
+    });
+
+    setVotePending(true);
+    void apiFetch(`/api/ideas/${ideaId}/vote`, {
       method: "POST",
       body: { direction: String(direction) },
       auth: true,
-    });
-    await refresh();
+    })
+      .then(() => {
+        // Re-fetch to correct metrics/server state (done in background).
+        void refresh();
+      })
+      .catch(() => {
+        // Rollback on failure.
+        setUserVote(optimistic.prevVote);
+        setData((prev) => {
+          if (!prev) return prev;
+          return { ...prev, metrics: { ...prev.metrics, ...optimistic.prevMetrics } };
+        });
+      })
+      .finally(() => setVotePending(false));
   };
 
-  const removeVote = async () => {
-    if (!token) return;
-    await apiFetch(`/api/ideas/${ideaId}/vote`, { method: "DELETE", auth: true });
-    await refresh();
+  const removeVote = () => {
+    if (!token || votePending) return;
+    const optimistic = (() => {
+      const prevMetrics = data?.metrics;
+      if (!prevMetrics) return null;
+      const prevVote = userVote;
+      const nextVote = null;
+      let nextUpvotes = prevMetrics.upvotes;
+      let nextDownvotes = prevMetrics.downvotes;
+      if (prevVote === 1) nextUpvotes -= 1;
+      if (prevVote === -1) nextDownvotes -= 1;
+      nextUpvotes = Math.max(0, nextUpvotes);
+      nextDownvotes = Math.max(0, nextDownvotes);
+
+      return {
+        prevVote,
+        prevMetrics,
+        nextVote,
+        nextMetrics: { upvotes: nextUpvotes, downvotes: nextDownvotes },
+      };
+    })();
+
+    if (!optimistic) return;
+
+    setUserVote(optimistic.nextVote);
+    setData((prev) => {
+      if (!prev) return prev;
+      return { ...prev, metrics: { ...prev.metrics, ...optimistic.nextMetrics } };
+    });
+
+    setVotePending(true);
+    void apiFetch(`/api/ideas/${ideaId}/vote`, { method: "DELETE", auth: true })
+      .then(() => {
+        void refresh();
+      })
+      .catch(() => {
+        setUserVote(optimistic.prevVote);
+        setData((prev) => {
+          if (!prev) return prev;
+          return { ...prev, metrics: { ...prev.metrics, ...optimistic.prevMetrics } };
+        });
+      })
+      .finally(() => setVotePending(false));
   };
 
   const submitComment = async (e: React.FormEvent) => {
@@ -122,13 +232,19 @@ export default function IdeaDetailsPage() {
     if (!token) return;
     setCheckoutLoading(true);
     try {
-      await apiFetch(`/api/purchases/checkout`, {
+      const data = await apiFetch<{ redirectUrl?: string; alreadyPaid?: boolean }>(`/api/purchases/checkout`, {
         method: "POST",
         auth: true,
-        body: { ideaId, provider: "mock" },
+        body: { ideaId },
       });
-      setLocked(false);
-      await refresh();
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+        return;
+      }
+      if (data.alreadyPaid) {
+        setLocked(false);
+        await refresh();
+      }
     } catch {
       setError("Payment failed.");
     } finally {
@@ -218,7 +334,7 @@ export default function IdeaDetailsPage() {
             upvotes={data.metrics.upvotes}
             downvotes={data.metrics.downvotes}
             userVote={userVote}
-            isAuthed={!!token}
+            isAuthed={!!token && !votePending}
             onUpvote={() => (userVote === 1 ? removeVote() : vote(1))}
             onDownvote={() => (userVote === -1 ? removeVote() : vote(-1))}
           />

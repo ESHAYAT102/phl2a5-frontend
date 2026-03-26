@@ -1,11 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { clearToken, decodeJwt, getToken } from "../lib/auth";
 
 export default function Navbar() {
-  const [token] = useState<string | null>(() => (typeof window !== "undefined" ? getToken() : null));
+  // Render consistently during SSR/hydration (token unknown on server),
+  // then load from localStorage after mount.
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setToken(getToken());
+  }, []);
 
   const payload = useMemo(() => (token ? decodeJwt(token) : null), [token]);
   const role = payload?.role ?? null;
