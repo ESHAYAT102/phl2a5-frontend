@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { apiFetch } from "../../../lib/api";
-import { decodeJwt, getToken } from "../../../lib/auth";
+import { getToken } from "../../../lib/auth";
 
 type IdeaDetailsResponse = {
   idea: {
@@ -25,7 +25,16 @@ type IdeaDetailsResponse = {
   };
   metrics: { upvotes: number; downvotes: number; commentCount: number };
   userVote: 1 | -1 | null;
-  comments: any[];
+  comments: CommentNode[];
+};
+
+type CommentNode = {
+  id: string;
+  userId: string;
+  content: string;
+  parentId: string | null;
+  createdAt: string;
+  replies: CommentNode[];
 };
 
 export default function IdeaDetailsPage() {
@@ -57,13 +66,14 @@ export default function IdeaDetailsPage() {
       const res = await apiFetch<IdeaDetailsResponse>(`/api/ideas/${ideaId}`, { auth: true });
       setData(res);
       setUserVote(res.userVote);
-    } catch (e: any) {
-      const status = e?.status;
+    } catch (e: unknown) {
+      const status = typeof e === "object" && e ? (e as { status?: unknown }).status : undefined;
+      const message = e instanceof Error ? e.message : null;
       if (status === 402) {
         setLocked(true);
-        setError(e.message ?? "Payment required.");
+        setError(message ?? "Payment required.");
       } else {
-        setError(e.message ?? "Failed to load idea.");
+        setError(message ?? "Failed to load idea.");
       }
     } finally {
       setLoading(false);
@@ -130,7 +140,7 @@ export default function IdeaDetailsPage() {
     }
   };
 
-  const renderComments = (nodes: any[]) => {
+  const renderComments = (nodes: CommentNode[]) => {
     return (
       <div className="space-y-4">
         {nodes.map((c) => (

@@ -2,6 +2,23 @@ import { getToken } from "./auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
+type ApiErrorBody = {
+  error?: string;
+  message?: string;
+  details?: unknown;
+};
+
+export class ApiError extends Error {
+  status: number;
+  details?: unknown;
+  constructor(message: string, status: number, details?: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.details = details;
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   options?: {
@@ -35,7 +52,7 @@ export async function apiFetch<T>(
   });
 
   const text = await res.text();
-  let json: any = null;
+  let json: unknown = null;
   try {
     json = text ? JSON.parse(text) : null;
   } catch {
@@ -43,11 +60,9 @@ export async function apiFetch<T>(
   }
 
   if (!res.ok) {
-    const message = json?.error || json?.message || `Request failed (${res.status})`;
-    const err = new Error(message) as Error & { status?: number; details?: any };
-    err.status = res.status;
-    err.details = json?.details;
-    throw err;
+    const body = (json && typeof json === "object" ? (json as ApiErrorBody) : {}) as ApiErrorBody;
+    const message = body.error || body.message || `Request failed (${res.status})`;
+    throw new ApiError(message, res.status, body.details);
   }
 
   return json as T;

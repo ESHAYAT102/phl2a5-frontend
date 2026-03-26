@@ -5,17 +5,21 @@ import { apiFetch } from "../../lib/api";
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email: string; role: string; isActive: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const res = await apiFetch<{ user: any }>("/api/me", { auth: true });
+        const res = await apiFetch<{ user: { id: string; email: string; role: string; isActive: boolean } }>(
+          "/api/me",
+          { auth: true }
+        );
         setUser(res.user);
-      } catch (e: any) {
-        setError(e?.message ?? "Failed to load profile.");
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Failed to load profile.";
+        setError(message);
       } finally {
         setLoading(false);
       }

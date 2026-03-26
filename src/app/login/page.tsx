@@ -17,15 +17,19 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await apiFetch<{ token: string; user: any }>("/api/auth/login", {
+      const res = await apiFetch<{ token: string; user: { id: string; email: string; role: string; isActive: boolean } }>(
+        "/api/auth/login",
+        {
         method: "POST",
         auth: false,
         body: { email, password },
-      });
+        }
+      );
       setToken(res.token);
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err?.message ?? "Login failed");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Login failed";
+      setError(message);
     } finally {
       setLoading(false);
     }

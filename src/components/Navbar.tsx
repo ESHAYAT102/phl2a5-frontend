@@ -1,19 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { clearToken, decodeJwt, getToken } from "../lib/auth";
 
 export default function Navbar() {
-  const [token, setToken] = useState<string | null>(null);
+  const [token] = useState<string | null>(() => (typeof window !== "undefined" ? getToken() : null));
 
   const payload = useMemo(() => (token ? decodeJwt(token) : null), [token]);
   const role = payload?.role ?? null;
-
-  useEffect(() => {
-    const t = getToken();
-    setToken(t);
-  }, []);
 
   const logout = () => {
     clearToken();

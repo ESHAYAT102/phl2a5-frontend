@@ -38,9 +38,15 @@ export default function IdeasPage() {
 
   const [searchName, setSearchName] = useState(params.get("search") ?? "");
   const [categoryName, setCategoryName] = useState(params.get("category") ?? "");
-  const [paymentStatus, setPaymentStatus] = useState<"free" | "paid" | "all">((params.get("payment") as any) ?? "all");
+  const initialPayment = params.get("payment");
+  const [paymentStatus, setPaymentStatus] = useState<"free" | "paid" | "all">(
+    initialPayment === "free" || initialPayment === "paid" || initialPayment === "all" ? initialPayment : "all"
+  );
   const [minUpvotes, setMinUpvotes] = useState<number>(Number(params.get("minUpvotes") ?? 0));
-  const [sort, setSort] = useState<"recent" | "top" | "comments">((params.get("sort") as any) ?? "recent");
+  const initialSort = params.get("sort");
+  const [sort, setSort] = useState<"recent" | "top" | "comments">(
+    initialSort === "recent" || initialSort === "top" || initialSort === "comments" ? initialSort : "recent"
+  );
 
   const [page, setPage] = useState<number>(clampPage(Number(params.get("page") ?? 1)));
   const pageSize = 12;
@@ -58,7 +64,7 @@ export default function IdeasPage() {
     load();
   }, []);
 
-  const query = useMemo(() => {
+  const query = useMemo((): Record<string, string | number | undefined> => {
     return {
       search: searchName || undefined,
       category: categoryName || undefined,
@@ -75,7 +81,7 @@ export default function IdeasPage() {
     async function load() {
       try {
         const res = await apiFetch<{ ideas: IdeaListItem[]; page: number; pageSize: number; totalCandidates: number }>("/api/ideas", {
-          query: query as any,
+          query,
           auth: false,
         });
         if (!mounted) return;
@@ -141,7 +147,7 @@ export default function IdeasPage() {
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Payment Status</label>
           <select
             value={paymentStatus}
-            onChange={(e) => setPaymentStatus(e.target.value as any)}
+            onChange={(e) => setPaymentStatus(e.target.value as "free" | "paid" | "all")}
             className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100"
           >
             <option value="all">All</option>
@@ -165,7 +171,7 @@ export default function IdeasPage() {
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Sort</label>
           <select
             value={sort}
-            onChange={(e) => setSort(e.target.value as any)}
+            onChange={(e) => setSort(e.target.value as "recent" | "top" | "comments")}
             className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100"
           >
             <option value="recent">Recent</option>

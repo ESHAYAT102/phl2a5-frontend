@@ -17,15 +17,19 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await apiFetch<{ token: string; user: any }>("/api/auth/signup", {
-        method: "POST",
-        auth: false,
-        body: { email, password },
-      });
+      const res = await apiFetch<{ token: string; user: { id: string; email: string; role: string; isActive: boolean } }>(
+        "/api/auth/signup",
+        {
+          method: "POST",
+          auth: false,
+          body: { email, password },
+        }
+      );
       setToken(res.token);
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err?.message ?? "Registration failed");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Registration failed";
+      setError(message);
     } finally {
       setLoading(false);
     }

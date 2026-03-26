@@ -18,8 +18,26 @@ type MyIdea = {
   adminFeedback?: string | null;
 };
 
-type AdminIdea = MyIdea & { authorEmail?: string; adminFeedback?: string };
+type AdminIdea = MyIdea & {
+  author?: { email: string };
+  adminFeedback?: string;
+};
 type AdminUser = { id: string; email: string; role: "MEMBER" | "ADMIN"; isActive: boolean; createdAt: string };
+
+type DraftIdeaForEdit = {
+  id: string;
+  title: string;
+  status: string;
+  categoryId: string;
+  problemStatement: string;
+  proposedSolution: string;
+  description: string;
+  imageUrls: string[];
+  videoUrl: string | null;
+  pdfUrl: string | null;
+  isPaid: boolean;
+  priceCents: number | null;
+};
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -86,8 +104,9 @@ export default function DashboardPage() {
       try {
         if (role === "ADMIN") await loadAdmin();
         else await loadMember();
-      } catch (e: any) {
-        setError(e?.message ?? "Failed to load dashboard.");
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Failed to load dashboard.";
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -102,7 +121,10 @@ export default function DashboardPage() {
         if (adminTab === "moderation") await loadAdmin();
         if (adminTab === "users") await loadUsers();
       })()
-        .catch((e: any) => setError(e?.message ?? "Failed to load ideas"))
+        .catch((e: unknown) => {
+          const message = e instanceof Error ? e.message : "Failed to load ideas";
+          setError(message);
+        })
         .finally(() => setLoading(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -134,7 +156,7 @@ export default function DashboardPage() {
           },
         });
       } else {
-        await apiFetch<{ idea: any }>("/api/ideas", {
+        await apiFetch("/api/ideas", {
           method: "POST",
           auth: true,
           body: {
@@ -163,8 +185,9 @@ export default function DashboardPage() {
       setEditingDraftId(null);
 
       await loadMember();
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to submit idea.");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to submit idea.";
+      setError(message);
     } finally {
       setFormLoading(false);
     }
@@ -181,7 +204,7 @@ export default function DashboardPage() {
   };
 
   const editDraft = async (id: string) => {
-    const res = await apiFetch<{ idea: any }>(`/api/me/ideas/${id}`, { auth: true });
+    const res = await apiFetch<{ idea: DraftIdeaForEdit }>(`/api/me/ideas/${id}`, { auth: true });
     const idea = res.idea;
     setEditingDraftId(id);
     setFormMode("DRAFT");
@@ -288,7 +311,11 @@ export default function DashboardPage() {
 
               <div className="space-y-1">
                 <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Mode</label>
-                <select value={formMode} onChange={(e) => setFormMode(e.target.value as any)} className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100">
+                <select
+                  value={formMode}
+                  onChange={(e) => setFormMode(e.target.value as "DRAFT" | "SUBMIT")}
+                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100"
+                >
                   <option value="DRAFT">Draft</option>
                   <option value="SUBMIT">Submit for review</option>
                 </select>
@@ -405,7 +432,9 @@ export default function DashboardPage() {
                   <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Status</label>
                   <select
                     value={adminStatusFilter}
-                    onChange={(e) => setAdminStatusFilter(e.target.value as any)}
+                    onChange={(e) =>
+                      setAdminStatusFilter(e.target.value as "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "DRAFT")
+                    }
                     className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-black dark:text-zinc-100"
                   >
                     <option value="UNDER_REVIEW">Under Review</option>
@@ -427,10 +456,10 @@ export default function DashboardPage() {
                   <div key={idea.id} className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <div className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{(idea as any).category?.name ?? idea.category.name}</div>
+                        <div className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{idea.category.name}</div>
                         <div className="mt-1 line-clamp-2 text-base font-semibold text-zinc-900 dark:text-zinc-50">{idea.title}</div>
                         <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                          Author: {(idea as any).author?.email ?? (idea as any).authorEmail ?? "Unknown"}
+                          Author: {idea.author?.email ?? "Unknown"}
                         </div>
                         <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Status: {idea.status}</div>
                       </div>
@@ -491,7 +520,7 @@ export default function DashboardPage() {
                         <td className="px-4 py-3">
                           <select
                             value={u.role}
-                            onChange={(e) => updateUser(u.id, { role: e.target.value as any })}
+                            onChange={(e) => updateUser(u.id, { role: e.target.value as "MEMBER" | "ADMIN" })}
                             className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-sm outline-none dark:border-zinc-800 dark:bg-black dark:text-zinc-100"
                           >
                             <option value="MEMBER">MEMBER</option>
