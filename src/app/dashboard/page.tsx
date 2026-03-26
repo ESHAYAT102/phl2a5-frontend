@@ -6,6 +6,7 @@ import { apiFetch } from "../../lib/api";
 import { decodeJwt, getToken } from "../../lib/auth";
 import PriceStatusBadge from "../../components/PriceStatusBadge";
 import IdeaEditorForm from "../../components/IdeaEditorForm";
+import RejectionFeedbackBox from "../../components/RejectionFeedbackBox";
 
 type Category = { id: string; name: string };
 type MyIdea = {
@@ -306,9 +307,7 @@ export default function DashboardPage() {
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     {idea.status === "REJECTED" && idea.adminFeedback ? (
-                      <div className="w-full rounded-lg bg-zinc-50 p-3 text-sm text-zinc-700 dark:bg-zinc-900/30 dark:text-zinc-200">
-                        Rejection feedback: {idea.adminFeedback}
-                      </div>
+                      <RejectionFeedbackBox feedback={idea.adminFeedback} className="w-full" />
                     ) : null}
                     {idea.status === "DRAFT" ? (
                       <>
@@ -411,9 +410,7 @@ export default function DashboardPage() {
                     </div>
 
                     {idea.status === "REJECTED" && idea.adminFeedback ? (
-                      <div className="mt-3 rounded-lg bg-zinc-50 p-3 text-sm text-zinc-700 dark:bg-zinc-900/30 dark:text-zinc-200">
-                        Feedback: {idea.adminFeedback}
-                      </div>
+                      <RejectionFeedbackBox feedback={idea.adminFeedback} label="Feedback" className="mt-3" />
                     ) : null}
 
                     <div className="mt-4 flex flex-wrap gap-2">
