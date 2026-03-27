@@ -13,6 +13,23 @@ export default function Navbar() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setToken(getToken());
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "ecospark_token") {
+        setToken(e.newValue);
+      }
+    };
+
+    const handleFocus = () => {
+      setToken(getToken());
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, []);
 
   const payload = useMemo(() => (token ? decodeJwt(token) : null), [token]);
