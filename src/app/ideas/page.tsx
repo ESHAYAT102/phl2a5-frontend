@@ -43,9 +43,12 @@ function IdeasPageContent() {
   useEffect(() => {
     async function load() {
       setLoading(true);
+      setFetchError(null);
       try {
         const cats = await apiFetch<{ categories: Category[] }>("/api/categories", { auth: false });
         setCategories(cats.categories);
+      } catch {
+        setFetchError("Failed to load categories.");
       } finally {
         // fallthrough
       }
@@ -69,6 +72,7 @@ function IdeasPageContent() {
   useEffect(() => {
     let mounted = true;
     async function load() {
+      setFetchError(null);
       try {
         const res = await apiFetch<{ ideas: IdeaListItem[]; page: number; pageSize: number; totalCandidates: number }>("/api/ideas", {
           query,

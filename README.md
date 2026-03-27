@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EcoSpark Hub Frontend
 
-## Getting Started
+Client application for EcoSpark Hub built with Next.js + Tailwind CSS.
 
-First, run the development server:
+## Features
+
+- Public home page with hero, search, top-voted ideas, and newsletter.
+- Ideas listing with search, filters, sorting, and pagination.
+- Idea details page with paid/free badges, paywall UX, voting, and nested comments.
+- Role-aware dashboard UI (member + admin views).
+- Authentication screens (register/login), profile page, about and blog pages.
+- Responsive navigation with mobile menu and global footer.
+
+## Tech Stack
+
+- Next.js (App Router)
+- TypeScript
+- Tailwind CSS
+
+## Environment Variables
+
+Create `./.env`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+NEXT_PUBLIC_API_URL=http://localhost:4000
+```
+
+## Local Development
+
+```bash
+bun install
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Frontend runs on `http://localhost:3000` by default.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API Dependency
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This app expects the backend API to be running and reachable through `NEXT_PUBLIC_API_URL`.
 
-## Learn More
+## Assignment Mapping (Frontend)
 
-To learn more about Next.js, take a look at the following resources:
+- Pages: Home, Ideas, Dashboard, About Us, Blog, Login/Register, My Profile.
+- Responsive UI with reusable components.
+- Loading and error states in key async flows.
+- Paid idea lock/unlock user experience integrated with backend checkout flow.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Deploy on Vercel (recommended):
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Import the repository in Vercel.
+2. Set `NEXT_PUBLIC_API_URL` to your deployed backend URL.
+3. Deploy.

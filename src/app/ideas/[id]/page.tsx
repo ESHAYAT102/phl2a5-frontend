@@ -245,8 +245,9 @@ export default function IdeaDetailsPage() {
         setLocked(false);
         await refresh();
       }
-    } catch {
-      setError("Payment failed.");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Payment failed.";
+      setError(message);
     } finally {
       setCheckoutLoading(false);
     }
